@@ -101,21 +101,83 @@ jev-watch examples
 
 ## Example run
 
+Example `expected` values are calibrated to the live model's current
+answers, so a clean checkout passes end to end — this is the baseline you'd
+commit, then re-run after every model update to catch drift:
+
 ```
 $ jev-watch examples
 PASS CRAToolkit refund eligibility
-FAIL CRAToolkit sales lead qualification
-  drift [department] choice: expected sales, got (missing) (tolerance 0.1)
-  drift [leadQuality] choice: expected 0.850, got (missing) (tolerance 0.1)
-FAIL CRAToolkit support routing
-  drift [department] choice: expected technical, got billing (tolerance 0.1)
-  drift [department] confidence: expected 0.900, got 0.550 (tolerance 0.1)
+PASS CRAToolkit sales lead qualification
+PASS CRAToolkit angry customer detection
+PASS CRAToolkit support routing
 
-1/4 tests passed
+4/4 tests passed
+```
+
+Break one of `examples/*.json` on purpose (e.g. change an `expected` choice)
+and jev-watch catches it immediately:
+
+```
+$ jev-watch examples/support-routing.json
+FAIL CRAToolkit support routing
+  drift [department] choice: expected sales, got technical (tolerance 0.1)
+
+0/1 tests passed
 ```
 
 Exit code is `0` when every test passes, `1` otherwise — wire it into CI to
 catch drift on every model deploy.
+
+## Testing
+
+Unit tests cover the drift-evaluation logic directly (choice match/mismatch,
+confidence threshold, score tolerance boundaries, missing answers) plus
+`runTestCase` against a mocked client, using Node's built-in test runner —
+no extra test framework dependency:
+
+```bash
+npm test
+```
+
+```
+# tests 12
+# pass 12
+# fail 0
+```
+
+## Benchmarking
+
+Two benchmarks, run separately since one costs real API calls:
+
+```bash
+npm run bench        # synthetic, offline, no API calls
+npm run bench:live   # hits the real Jev model via JEV_API_KEY or OPENROUTER_API_KEY
+```
+
+`bench` generates thousands of synthetic choice/score cases with a known,
+independently-computed ground truth (did we *intend* to inject drift or
+not), runs them through the same `evaluateQuestion` the CLI uses, and checks
+the tool's verdict against that ground truth — plus a raw throughput number:
+
+```
+Drift-detection accuracy over 20000 synthetic cases
+  true positive  (drift caught):        11210
+  true negative  (stable, no false alarm): 8790
+  false positive (false alarm):         0
+  false negative (drift missed):        0
+  accuracy:  100.00%
+  precision: 100.00%
+  recall:    100.00%
+
+Throughput: 200000 evaluations in 27.51ms (7269925/sec)
+PASS: drift-detection logic matches ground truth on synthetic cases.
+```
+
+`bench:live` runs `examples/` against the real model `BENCH_RUNS` times
+(default 3) and reports the pass-rate consistency per test case — flags any
+test whose verdict isn't identical across runs, which is a live model being
+non-deterministic in exactly the way jev-watch exists to catch.
 
 ## Project layout
 
@@ -128,3 +190,5 @@ catch drift on every model deploy.
 - `src/index.ts` — CLI entrypoint
 - `bin/jev-watch.js` — executable shim
 - `examples/` — four sample test cases
+- `test/` — unit tests (`npm test`)
+- `bench/` — synthetic and live benchmarks (`npm run bench`, `npm run bench:live`)

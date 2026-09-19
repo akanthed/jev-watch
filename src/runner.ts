@@ -37,7 +37,7 @@ export function loadTestCasesFromDir(dirPath: string): { file: string; test: Tes
   }));
 }
 
-function evaluateQuestion(
+export function evaluateQuestion(
   questionId: string,
   expected: string | number,
   actual: AnswerResult | undefined,
