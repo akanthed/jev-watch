@@ -1,7 +1,7 @@
 {
   "name": "jev-watch",
   "version": "0.1.0",
-  "description": "Load test cases from JSON, call the TypeSafe Jev API, and catch when answers drift after model updates.",
+  "description": "Load test cases from JSON, call the TypeSafe Jev API (directly or via OpenRouter), and catch when answers drift after model updates.",
   "bin": {
     "jev-watch": "bin/jev-watch.js"
   },
@@ -10,6 +10,22 @@
   "files": [
     "bin",
     "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/akanthed/jev-watch.git"
+  },
+  "bugs": {
+    "url": "https://github.com/akanthed/jev-watch/issues"
+  },
+  "homepage": "https://github.com/akanthed/jev-watch#readme",
+  "keywords": [
+    "jev",
+    "typesafe",
+    "openrouter",
+    "llm",
+    "testing",
+    "drift"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
