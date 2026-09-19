@@ -1,0 +1,30 @@
+{
+  "name": "jev-watch",
+  "version": "0.1.0",
+  "description": "Load test cases from JSON, call the TypeSafe Jev API, and catch when answers drift after model updates.",
+  "bin": {
+    "jev-watch": "bin/jev-watch.js"
+  },
+  "main": "dist/runner.js",
+  "types": "dist/runner.d.ts",
+  "files": [
+    "bin",
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "@types/node": "^22.9.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}

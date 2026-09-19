@@ -1,0 +1,26 @@
+{
+  "testName": "CRAToolkit angry customer detection",
+  "state": "Customer says: This is the third time I've had to contact support about the same broken export feature. I'm extremely frustrated and considering cancelling.",
+  "questions": {
+    "sentiment": {
+      "type": "choice",
+      "instruction": "What is the customer's overall sentiment?",
+      "options": {
+        "positive": "Happy or satisfied",
+        "neutral": "Neither positive nor negative",
+        "negative": "Frustrated, angry, or dissatisfied"
+      }
+    },
+    "churnRisk": {
+      "type": "score",
+      "instruction": "Rate the risk this customer churns from 0 (none) to 1 (certain)",
+      "min": 0,
+      "max": 1
+    }
+  },
+  "expected": {
+    "sentiment": "negative",
+    "churnRisk": 0.8
+  },
+  "tolerance": 0.1
+}

@@ -1,0 +1,26 @@
+{
+  "testName": "CRAToolkit refund eligibility",
+  "state": "Customer says: I was charged twice for my subscription this month and want a refund for the duplicate charge",
+  "questions": {
+    "department": {
+      "type": "choice",
+      "instruction": "Which team should handle this?",
+      "options": {
+        "billing": "Payment, invoices, subscription issues",
+        "technical": "Login, bugs, product errors",
+        "sales": "New purchases, upgrades, demos"
+      }
+    },
+    "urgency": {
+      "type": "score",
+      "instruction": "Rate urgency from 0 (can wait) to 1 (needs immediate attention)",
+      "min": 0,
+      "max": 1
+    }
+  },
+  "expected": {
+    "department": "billing",
+    "urgency": 0.6
+  },
+  "tolerance": 0.15
+}

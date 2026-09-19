@@ -1,0 +1,26 @@
+{
+  "testName": "CRAToolkit sales lead qualification",
+  "state": "Customer says: We're a 200-person company evaluating tools to replace our current CRA workflow, budget approved, looking to decide within two weeks",
+  "questions": {
+    "department": {
+      "type": "choice",
+      "instruction": "Which team should handle this?",
+      "options": {
+        "billing": "Payment, invoices, subscription issues",
+        "technical": "Login, bugs, product errors",
+        "sales": "New purchases, upgrades, demos"
+      }
+    },
+    "leadQuality": {
+      "type": "score",
+      "instruction": "Rate this lead's quality from 0 (poor fit) to 1 (excellent fit)",
+      "min": 0,
+      "max": 1
+    }
+  },
+  "expected": {
+    "department": "sales",
+    "leadQuality": 0.85
+  },
+  "tolerance": 0.1
+}

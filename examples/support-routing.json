@@ -1,0 +1,19 @@
+{
+  "testName": "CRAToolkit support routing",
+  "state": "Customer says: I can't log in",
+  "questions": {
+    "department": {
+      "type": "choice",
+      "instruction": "Which team should handle this?",
+      "options": {
+        "billing": "Payment, invoices, subscription issues",
+        "technical": "Login, bugs, product errors",
+        "sales": "New purchases, upgrades, demos"
+      }
+    }
+  },
+  "expected": {
+    "department": "technical"
+  },
+  "tolerance": 0.1
+}
