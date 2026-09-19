@@ -2,6 +2,8 @@ import * as fs from "fs";
 import * as path from "path";
 import * as dotenv from "dotenv";
 import { JevClient } from "./client";
+import { OpenRouterClient } from "./openrouterClient";
+import { AnswerClient } from "./types";
 import { loadTestCase, loadTestCasesFromDir, runTestSuite } from "./runner";
 import { printResults } from "./report";
 
@@ -14,10 +16,35 @@ function usage(): void {
 Usage:
   jev-watch <path-to-test.json | directory-of-tests>
 
-Environment:
-  OPEN_ROUTE_KEY     OpenRouter API key (required)
-  OPEN_ROUTE_MODEL   OpenRouter model id (optional, default ~typesafe/jev-latest)
+Environment (either one of):
+  JEV_API_KEY       TypeSafe API key, to call https://api.typesafe.ai directly
+  JEV_API_URL       Override base URL (e.g. a dedicated enterprise deployment)
+  JEV_MODEL         Model or alias to request (default: jev-latest)
+
+  OPENROUTER_API_KEY  OpenRouter API key, to call Jev via OpenRouter instead
+  OPENROUTER_MODEL    Model slug (default: ~typesafe/jev-latest)
 `);
+}
+
+function buildClient(): AnswerClient | undefined {
+  const apiKey = process.env.JEV_API_KEY;
+  if (apiKey) {
+    return new JevClient({
+      apiKey,
+      baseUrl: process.env.JEV_API_URL,
+      model: process.env.JEV_MODEL,
+    });
+  }
+
+  const openRouterKey = process.env.OPENROUTER_API_KEY;
+  if (openRouterKey) {
+    return new OpenRouterClient({
+      apiKey: openRouterKey,
+      model: process.env.OPENROUTER_MODEL,
+    });
+  }
+
+  return undefined;
 }
 
 export async function main(argv: string[]): Promise<number> {
@@ -28,11 +55,12 @@ export async function main(argv: string[]): Promise<number> {
     return target ? 0 : 1;
   }
 
-  const apiKey = process.env.OPEN_ROUTE_KEY;
-  const model = process.env.OPEN_ROUTE_MODEL;
-
-  if (!apiKey) {
-    console.error("Missing OPEN_ROUTE_KEY in environment (.env.local).");
+  const client = buildClient();
+  if (!client) {
+    console.error(
+      "Missing credentials in environment (.env.local): set JEV_API_KEY to call the " +
+        "TypeSafe API directly, or OPENROUTER_API_KEY to call Jev via OpenRouter."
+    );
     return 1;
   }
 
@@ -51,7 +79,6 @@ export async function main(argv: string[]): Promise<number> {
     return 1;
   }
 
-  const client = new JevClient({ apiKey, model });
   const results = await runTestSuite(client, tests);
   printResults(results);
 

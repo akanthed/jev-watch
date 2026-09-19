@@ -36,6 +36,13 @@ test("choice: confidence exactly at tolerance boundary -> pass", () => {
   assert.equal(result.passed, true);
 });
 
+test("choice: confidence boundary survives float rounding (1 - 0.7 !== 0.3 exactly)", () => {
+  // 1 - 0.7 === 0.30000000000000004 in IEEE 754; tolerance 0.3 must still pass.
+  const actual: AnswerResult = { type: "choice", choice: "technical", confidence: 0.7 };
+  const result = evaluateQuestion("department", "technical", actual, 0.3);
+  assert.equal(result.passed, true);
+});
+
 test("choice: missing answer for question -> flagged as drift", () => {
   const result = evaluateQuestion("department", "technical", undefined, 0.1);
   assert.equal(result.passed, false);

@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
-import { JevClient } from "./client";
 import {
+  AnswerClient,
   AnswerResult,
   DriftDetail,
   QuestionResult,
@@ -37,6 +37,10 @@ export function loadTestCasesFromDir(dirPath: string): { file: string; test: Tes
   }));
 }
 
+// Guards against float rounding (e.g. 1 - 0.7 === 0.30000000000000004) pushing
+// an exact-boundary value over its tolerance.
+const EPSILON = 1e-9;
+
 export function evaluateQuestion(
   questionId: string,
   expected: string | number,
@@ -66,7 +70,7 @@ export function evaluateQuestion(
         tolerance,
       });
     }
-    if (typeof actual.confidence === "number" && 1 - actual.confidence > tolerance) {
+    if (typeof actual.confidence === "number" && 1 - actual.confidence > tolerance + EPSILON) {
       drifts.push({
         questionId,
         kind: "confidence",
@@ -77,7 +81,7 @@ export function evaluateQuestion(
     }
   } else if (actual.type === "score") {
     const expectedNum = Number(expected);
-    if (typeof actual.score === "number" && Math.abs(actual.score - expectedNum) > tolerance) {
+    if (typeof actual.score === "number" && Math.abs(actual.score - expectedNum) > tolerance + EPSILON) {
       drifts.push({
         questionId,
         kind: "score",
@@ -86,7 +90,7 @@ export function evaluateQuestion(
         tolerance,
       });
     }
-    if (typeof actual.confidence === "number" && 1 - actual.confidence > tolerance) {
+    if (typeof actual.confidence === "number" && 1 - actual.confidence > tolerance + EPSILON) {
       drifts.push({
         questionId,
         kind: "confidence",
@@ -100,7 +104,7 @@ export function evaluateQuestion(
   return { questionId, passed: drifts.length === 0, drifts, actual };
 }
 
-export async function runTestCase(client: JevClient, test: TestCase): Promise<TestResult> {
+export async function runTestCase(client: AnswerClient, test: TestCase): Promise<TestResult> {
   try {
     const response = await client.ask({ state: test.state, questions: test.questions });
 
@@ -125,7 +129,7 @@ export async function runTestCase(client: JevClient, test: TestCase): Promise<Te
 }
 
 export async function runTestSuite(
-  client: JevClient,
+  client: AnswerClient,
   tests: { file: string; test: TestCase }[]
 ): Promise<TestResult[]> {
   const results: TestResult[] = [];

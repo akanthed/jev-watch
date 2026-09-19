@@ -2,26 +2,20 @@ import axios from "axios";
 import { AnswerClient, JevApiResponse, TestCase } from "./types";
 import { SystemOneAnswer, SystemOneQuestion, fromSystemOneAnswer, toSystemOneQuestion } from "./systemOne";
 
-const DEFAULT_BASE_URL = "https://api.typesafe.ai";
-const DEFAULT_MODEL = "jev-latest";
+const DECISIONS_ENDPOINT = "https://openrouter.ai/api/alpha/decisions";
+const DEFAULT_MODEL = "~typesafe/jev-latest";
 
-export interface JevClientConfig {
+export interface OpenRouterClientConfig {
   apiKey: string;
-  baseUrl?: string;
   model?: string;
   timeoutMs?: number;
 }
 
-export class JevClient implements AnswerClient {
-  constructor(private readonly config: JevClientConfig) {}
+export class OpenRouterClient implements AnswerClient {
+  constructor(private readonly config: OpenRouterClientConfig) {}
 
   async ask(test: Pick<TestCase, "state" | "questions">): Promise<JevApiResponse> {
-    const {
-      apiKey,
-      baseUrl = DEFAULT_BASE_URL,
-      model = DEFAULT_MODEL,
-      timeoutMs = 30_000,
-    } = this.config;
+    const { apiKey, model = DEFAULT_MODEL, timeoutMs = 30_000 } = this.config;
 
     const questions: Record<string, SystemOneQuestion> = {};
     for (const [id, question] of Object.entries(test.questions)) {
@@ -29,8 +23,8 @@ export class JevClient implements AnswerClient {
     }
 
     const response = await axios.post<{ answers: Record<string, SystemOneAnswer> }>(
-      `${baseUrl.replace(/\/+$/, "")}/v1/systemone`,
-      { state: test.state, model, questions },
+      DECISIONS_ENDPOINT,
+      { model, state: test.state, questions },
       {
         headers: {
           Authorization: `Bearer ${apiKey}`,
