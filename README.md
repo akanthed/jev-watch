@@ -14,8 +14,8 @@ npm run build
 Set credentials in `.env.local` (or the shell environment):
 
 ```
-JEV_API_URL=https://your-jev-api.example.com
-JEV_API_KEY=sk-...
+OPEN_ROUTE_KEY=sk-or-...
+OPEN_ROUTE_MODEL=openai/gpt-4o-mini   # optional, this is the default
 ```
 
 Link the CLI locally if you want the bare `jev-watch` command:
@@ -26,13 +26,9 @@ npm link
 
 ## API contract
 
-`jev-watch` POSTs each test case to `${JEV_API_URL}/v1/answer`:
-
-```json
-{ "state": "...", "questions": { "<id>": { "type": "choice" | "score", ... } } }
-```
-
-and expects back:
+`jev-watch` turns each test case's `state` and `questions` into a prompt and
+calls OpenRouter's chat completions API (`https://openrouter.ai/api/v1/chat/completions`),
+instructing the model to answer with strict JSON:
 
 ```json
 {
@@ -42,7 +38,10 @@ and expects back:
 }
 ```
 
-Adjust `src/client.ts` if your deployment's endpoint or response shape differs.
+This is what "the TypeSafe Jev API" resolves to for jev-watch's purposes — a
+model call behind OpenRouter, which is what actually drifts between model
+updates. Swap the model via `OPEN_ROUTE_MODEL`, or edit `src/client.ts` if you
+have a bespoke Jev endpoint instead of going through OpenRouter.
 
 ## Test case format
 

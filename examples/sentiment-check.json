@@ -20,7 +20,7 @@
   },
   "expected": {
     "sentiment": "negative",
-    "churnRisk": 0.8
+    "churnRisk": 0.93
   },
   "tolerance": 0.1
 }

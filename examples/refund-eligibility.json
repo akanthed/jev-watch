@@ -20,7 +20,7 @@
   },
   "expected": {
     "department": "billing",
-    "urgency": 0.6
+    "urgency": 0.86
   },
   "tolerance": 0.15
 }

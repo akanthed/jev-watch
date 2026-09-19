@@ -15,8 +15,8 @@ Usage:
   jev-watch <path-to-test.json | directory-of-tests>
 
 Environment:
-  JEV_API_URL   Base URL of the TypeSafe Jev API (required)
-  JEV_API_KEY   Bearer token for the API (required)
+  OPEN_ROUTE_KEY     OpenRouter API key (required)
+  OPEN_ROUTE_MODEL   OpenRouter model id (optional, default ~typesafe/jev-latest)
 `);
 }
 
@@ -28,11 +28,11 @@ export async function main(argv: string[]): Promise<number> {
     return target ? 0 : 1;
   }
 
-  const baseUrl = process.env.JEV_API_URL;
-  const apiKey = process.env.JEV_API_KEY;
+  const apiKey = process.env.OPEN_ROUTE_KEY;
+  const model = process.env.OPEN_ROUTE_MODEL;
 
-  if (!baseUrl || !apiKey) {
-    console.error("Missing JEV_API_URL or JEV_API_KEY in environment (.env.local).");
+  if (!apiKey) {
+    console.error("Missing OPEN_ROUTE_KEY in environment (.env.local).");
     return 1;
   }
 
@@ -51,7 +51,7 @@ export async function main(argv: string[]): Promise<number> {
     return 1;
   }
 
-  const client = new JevClient({ baseUrl, apiKey });
+  const client = new JevClient({ apiKey, model });
   const results = await runTestSuite(client, tests);
   printResults(results);
 
