@@ -47,20 +47,19 @@ shared by both transports:
   `https://openrouter.ai/api/alpha/decisions`, which normalizes to the same
   request/response shape.
 
-Both send `{ "state": ..., "model": ..., "questions": { "<id>": { "type": "choice" | "noul", "instructions": "...", "criteria": {...} } } }`
-and get back `{ "answers": { "<id>": { "type": "choice", "choice": "...", "probabilities": {...}, "confidence": 0.82 } } }`
-(or a `"noul"` answer with just a `noul` probability).
+Both send `{ "state": ..., "model": ..., "questions": { "<id>": { "type": "choice" | "score", "instructions": "...", "criteria": {...} } } }`
+and get back `{ "answers": { "<id>": { "type": "choice" | "score", "choice"/"score": ..., "probabilities": {...}, "confidence": 0.82 } } }`.
 
 `jev-watch`'s own test-case format only has `choice` and `score` question
-types (see below); `src/systemOne.ts` adapts between them:
+types (see below); `src/systemOne.ts` maps between them and the wire format
+1:1 — `choice` questions carry their `options` as `criteria`, `score`
+questions carry `[min, max]` as `criteria` — and both answer types come back
+with a `confidence`, which feeds the confidence-drift check below.
 
-- `choice` questions map straight across, with `confidence` taken directly
-  from the API's `confidence` field.
-- `score` questions — which in this repo are always continuous 0–1 values
-  described by `instruction` — map onto Jev's `noul` (calibrated yes/no
-  probability) question type, using that same `instruction` text as the
-  anchor for what 0 and 1 mean, and `noul`'s returned probability becomes
-  the test's `score`.
+> An earlier version of this adapter mapped `score` questions onto Jev's
+> `noul` (yes/no probability) type instead of its native `score` type. That
+> silently dropped confidence data and returned worse answers — verified by
+> probing the raw endpoint. Fixed; `score` now maps straight across.
 
 ## Test case format
 
@@ -85,6 +84,13 @@ types (see below); `src/systemOne.ts` adapts between them:
   requires confidence >= 0.9).
 - `type: "score"` — fails if `|actual.score - expected| > tolerance`, or on
   the same confidence check as above.
+- Comparisons carry a small epsilon so exact-boundary values (e.g.
+  `confidence: 0.7` at `tolerance: 0.3`) don't get false-flagged by float
+  rounding (`1 - 0.7 === 0.30000000000000004` in JS).
+- Score-type confidence tends to run lower and noisier than choice-type
+  confidence (the model is scoring a continuous judgment, not picking from a
+  fixed list) — size `tolerance` accordingly per test rather than reusing a
+  choice-question tolerance.
 
 ## Running
 
@@ -132,17 +138,17 @@ catch drift on every model deploy.
 ## Testing
 
 Unit tests cover the drift-evaluation logic directly (choice match/mismatch,
-confidence threshold, score tolerance boundaries, missing answers) plus
-`runTestCase` against a mocked client, using Node's built-in test runner —
-no extra test framework dependency:
+confidence threshold, score tolerance boundaries, float-rounding boundary
+cases, missing answers) plus `runTestCase` against a mocked client, using
+Node's built-in test runner — no extra test framework dependency:
 
 ```bash
 npm test
 ```
 
 ```
-# tests 12
-# pass 12
+# tests 13
+# pass 13
 # fail 0
 ```
 
