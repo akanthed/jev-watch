@@ -1,8 +1,57 @@
 # jev-watch
 
-CLI tool that loads test cases from JSON, calls the TypeSafe Jev API, and flags
-when answers drift after a model update — a choice flips, a score moves, or
-confidence drops below tolerance.
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Node >=18](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](package.json)
+
+**Your app doesn't control when TypeSafe updates the Jev model. jev-watch
+tells you the moment an update changes an answer you depend on.**
+
+Jev sits behind an API you don't own. TypeSafe can retrain or redeploy it at
+any time, and the same input can start producing a different answer with no
+warning, no changelog, and no version bump on your side. If your app routes
+tickets, scores urgency, or gates a decision on Jev's response, that silent
+change ships straight to your users before anyone notices.
+
+jev-watch closes that gap: commit the answers you know are correct today as
+a baseline, then re-run the same test cases after every model update. A
+choice flip, a score that moves past tolerance, or a confidence drop gets
+caught and reported — before it becomes a support ticket.
+
+```
+$ jev-watch examples
+PASS CRAToolkit refund eligibility
+PASS CRAToolkit sales lead qualification
+PASS CRAToolkit angry customer detection
+PASS CRAToolkit support routing
+
+4/4 tests passed
+```
+
+```
+$ jev-watch examples/support-routing.json
+FAIL CRAToolkit support routing
+  drift [department] choice: expected sales, got technical (tolerance 0.1)
+
+0/1 tests passed
+```
+
+This isn't hypothetical. An earlier version of jev-watch's own adapter mapped
+`score` questions onto Jev's `noul` (yes/no probability) type instead of its
+native `score` type — a wiring bug that silently dropped confidence data and
+returned worse answers. It was caught by comparing live output against a
+committed baseline, the exact workflow this tool exists to give you. See
+[API contract](#api-contract) for the fix.
+
+## Quickstart
+
+```bash
+npm install && npm run build
+echo "JEV_API_KEY=sk-..." > .env.local   # or OPENROUTER_API_KEY, see below
+node bin/jev-watch.js examples
+```
+
+Exit code `0` when every test passes, `1` otherwise — wire it into CI and
+every model deploy gets checked automatically.
 
 ## Setup
 
@@ -198,3 +247,12 @@ non-deterministic in exactly the way jev-watch exists to catch.
 - `examples/` — four sample test cases
 - `test/` — unit tests (`npm test`)
 - `bench/` — synthetic and live benchmarks (`npm run bench`, `npm run bench:live`)
+
+## Contributing
+
+If Jev has caught you off guard with a changed answer, that's exactly the
+kind of case worth turning into a committed test — open a PR with the JSON
+file, or file an issue with the before/after answers. Bug reports and
+adapter fixes (see the `noul`/`score` incident above) are especially
+welcome, since they're usually only found by someone actually running this
+against production traffic.
