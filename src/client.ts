@@ -1,9 +1,14 @@
 import axios from "axios";
-import { AnswerClient, JevApiResponse, Question, TestCase } from "./types";
+import { AnswerClient, JevApiResponse, TestCase } from "./types";
+import { SystemOneAnswer, SystemOneQuestion, fromSystemOneAnswer, toSystemOneQuestion } from "./systemOne";
+
+const DEFAULT_BASE_URL = "https://api.typesafe.ai";
+const DEFAULT_MODEL = "jev-latest";
 
 export interface JevClientConfig {
-  baseUrl: string;
   apiKey: string;
+  baseUrl?: string;
+  model?: string;
   timeoutMs?: number;
 }
 
@@ -11,14 +16,21 @@ export class JevClient implements AnswerClient {
   constructor(private readonly config: JevClientConfig) {}
 
   async ask(test: Pick<TestCase, "state" | "questions">): Promise<JevApiResponse> {
-    const { baseUrl, apiKey, timeoutMs = 30_000 } = this.config;
+    const {
+      apiKey,
+      baseUrl = DEFAULT_BASE_URL,
+      model = DEFAULT_MODEL,
+      timeoutMs = 30_000,
+    } = this.config;
 
-    const response = await axios.post<JevApiResponse>(
-      `${baseUrl.replace(/\/+$/, "")}/v1/answer`,
-      {
-        state: test.state,
-        questions: test.questions as Record<string, Question>,
-      },
+    const questions: Record<string, SystemOneQuestion> = {};
+    for (const [id, question] of Object.entries(test.questions)) {
+      questions[id] = toSystemOneQuestion(question);
+    }
+
+    const response = await axios.post<{ answers: Record<string, SystemOneAnswer> }>(
+      `${baseUrl.replace(/\/+$/, "")}/v1/systemone`,
+      { state: test.state, model, questions },
       {
         headers: {
           Authorization: `Bearer ${apiKey}`,
@@ -28,6 +40,11 @@ export class JevClient implements AnswerClient {
       }
     );
 
-    return response.data;
+    const answers: JevApiResponse["answers"] = {};
+    for (const [id, answer] of Object.entries(response.data.answers)) {
+      answers[id] = fromSystemOneAnswer(answer);
+    }
+
+    return { answers };
   }
 }

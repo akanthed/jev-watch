@@ -11,23 +11,24 @@ npm install
 npm run build
 ```
 
-Set credentials in `.env.local` (or the shell environment) — either a direct
-Jev API deployment:
+Set credentials in `.env.local` (or the shell environment) — either a
+TypeSafe API key, to call `https://api.typesafe.ai` directly:
 
 ```
-JEV_API_URL=https://your-jev-api.example.com
 JEV_API_KEY=sk-...
+JEV_API_URL=https://your-dedicated-endpoint.example.com   # optional, for enterprise/custom deployments
+JEV_MODEL=jev-latest                                      # optional, this is the default
 ```
 
 or an OpenRouter API key, to call TypeSafe's Jev model through OpenRouter
-instead (no separate Jev deployment needed):
+instead (no TypeSafe account needed):
 
 ```
 OPENROUTER_API_KEY=sk-or-v1-...
 OPENROUTER_MODEL=~typesafe/jev-latest   # optional, this is the default
 ```
 
-`JEV_API_URL`/`JEV_API_KEY` take precedence when both are set.
+`JEV_API_KEY` takes precedence when both are set.
 
 Link the CLI locally if you want the bare `jev-watch` command:
 
@@ -37,32 +38,29 @@ npm link
 
 ## API contract
 
-`jev-watch` POSTs each test case to `${JEV_API_URL}/v1/answer`:
+`jev-watch` speaks TypeSafe's System One wire format (`src/systemOne.ts`),
+shared by both transports:
 
-```json
-{ "state": "...", "questions": { "<id>": { "type": "choice" | "score", ... } } }
-```
+- **Direct** (`JEV_API_KEY`) — `src/client.ts` POSTs to
+  `${JEV_API_URL:-https://api.typesafe.ai}/v1/systemone`.
+- **OpenRouter** (`OPENROUTER_API_KEY`) — `src/openrouterClient.ts` POSTs to
+  `https://openrouter.ai/api/alpha/decisions`, which normalizes to the same
+  request/response shape.
 
-and expects back:
+Both send `{ "state": ..., "model": ..., "questions": { "<id>": { "type": "choice" | "noul", "instructions": "...", "criteria": {...} } } }`
+and get back `{ "answers": { "<id>": { "type": "choice", "choice": "...", "probabilities": {...}, "confidence": 0.82 } } }`
+(or a `"noul"` answer with just a `noul` probability).
 
-```json
-{
-  "answers": {
-    "<id>": { "type": "choice", "choice": "technical", "confidence": 0.93 }
-  }
-}
-```
+`jev-watch`'s own test-case format only has `choice` and `score` question
+types (see below); `src/systemOne.ts` adapts between them:
 
-Adjust `src/client.ts` if your deployment's endpoint or response shape differs.
-
-When using `OPENROUTER_API_KEY` instead, `src/openrouterClient.ts` calls
-OpenRouter's Decisions API (`POST https://openrouter.ai/api/alpha/decisions`)
-and adapts between the two shapes: `choice` questions map straight across
-(with `confidence` taken from the returned probability of the chosen
-option), and `score` questions — which in this repo are always continuous
-0–1 values described by `instruction` — map onto Jev's `noul` (calibrated
-yes/no probability) question type, using that same `instruction` text as
-the anchor for what 0 and 1 mean.
+- `choice` questions map straight across, with `confidence` taken directly
+  from the API's `confidence` field.
+- `score` questions — which in this repo are always continuous 0–1 values
+  described by `instruction` — map onto Jev's `noul` (calibrated yes/no
+  probability) question type, using that same `instruction` text as the
+  anchor for what 0 and 1 mean, and `noul`'s returned probability becomes
+  the test's `score`.
 
 ## Test case format
 
@@ -122,8 +120,9 @@ catch drift on every model deploy.
 ## Project layout
 
 - `src/types.ts` — test case, API response, and result types
-- `src/client.ts` — thin axios wrapper around a direct Jev API deployment
-- `src/openrouterClient.ts` — adapter that calls Jev via OpenRouter's Decisions API
+- `src/systemOne.ts` — shared TypeSafe System One wire format + adapter
+- `src/client.ts` — direct TypeSafe API client (`api.typesafe.ai`)
+- `src/openrouterClient.ts` — client that calls Jev via OpenRouter's Decisions API
 - `src/runner.ts` — loads test cases, calls the API, evaluates drift
 - `src/report.ts` — terminal output
 - `src/index.ts` — CLI entrypoint

@@ -17,8 +17,9 @@ Usage:
   jev-watch <path-to-test.json | directory-of-tests>
 
 Environment (either one of):
-  JEV_API_URL       Base URL of a direct TypeSafe Jev API deployment
-  JEV_API_KEY       Bearer token for that deployment
+  JEV_API_KEY       TypeSafe API key, to call https://api.typesafe.ai directly
+  JEV_API_URL       Override base URL (e.g. a dedicated enterprise deployment)
+  JEV_MODEL         Model or alias to request (default: jev-latest)
 
   OPENROUTER_API_KEY  OpenRouter API key, to call Jev via OpenRouter instead
   OPENROUTER_MODEL    Model slug (default: ~typesafe/jev-latest)
@@ -26,10 +27,13 @@ Environment (either one of):
 }
 
 function buildClient(): AnswerClient | undefined {
-  const baseUrl = process.env.JEV_API_URL;
   const apiKey = process.env.JEV_API_KEY;
-  if (baseUrl && apiKey) {
-    return new JevClient({ baseUrl, apiKey });
+  if (apiKey) {
+    return new JevClient({
+      apiKey,
+      baseUrl: process.env.JEV_API_URL,
+      model: process.env.JEV_MODEL,
+    });
   }
 
   const openRouterKey = process.env.OPENROUTER_API_KEY;
@@ -54,8 +58,8 @@ export async function main(argv: string[]): Promise<number> {
   const client = buildClient();
   if (!client) {
     console.error(
-      "Missing credentials in environment (.env.local): set JEV_API_URL + JEV_API_KEY " +
-        "for a direct Jev API deployment, or OPENROUTER_API_KEY to call Jev via OpenRouter."
+      "Missing credentials in environment (.env.local): set JEV_API_KEY to call the " +
+        "TypeSafe API directly, or OPENROUTER_API_KEY to call Jev via OpenRouter."
     );
     return 1;
   }
