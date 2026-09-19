@@ -11,12 +11,23 @@ npm install
 npm run build
 ```
 
-Set credentials in `.env.local` (or the shell environment):
+Set credentials in `.env.local` (or the shell environment) — either a direct
+Jev API deployment:
 
 ```
 JEV_API_URL=https://your-jev-api.example.com
 JEV_API_KEY=sk-...
 ```
+
+or an OpenRouter API key, to call TypeSafe's Jev model through OpenRouter
+instead (no separate Jev deployment needed):
+
+```
+OPENROUTER_API_KEY=sk-or-v1-...
+OPENROUTER_MODEL=~typesafe/jev-latest   # optional, this is the default
+```
+
+`JEV_API_URL`/`JEV_API_KEY` take precedence when both are set.
 
 Link the CLI locally if you want the bare `jev-watch` command:
 
@@ -43,6 +54,15 @@ and expects back:
 ```
 
 Adjust `src/client.ts` if your deployment's endpoint or response shape differs.
+
+When using `OPENROUTER_API_KEY` instead, `src/openrouterClient.ts` calls
+OpenRouter's Decisions API (`POST https://openrouter.ai/api/alpha/decisions`)
+and adapts between the two shapes: `choice` questions map straight across
+(with `confidence` taken from the returned probability of the chosen
+option), and `score` questions — which in this repo are always continuous
+0–1 values described by `instruction` — map onto Jev's `noul` (calibrated
+yes/no probability) question type, using that same `instruction` text as
+the anchor for what 0 and 1 mean.
 
 ## Test case format
 
@@ -102,7 +122,8 @@ catch drift on every model deploy.
 ## Project layout
 
 - `src/types.ts` — test case, API response, and result types
-- `src/client.ts` — thin axios wrapper around the Jev API
+- `src/client.ts` — thin axios wrapper around a direct Jev API deployment
+- `src/openrouterClient.ts` — adapter that calls Jev via OpenRouter's Decisions API
 - `src/runner.ts` — loads test cases, calls the API, evaluates drift
 - `src/report.ts` — terminal output
 - `src/index.ts` — CLI entrypoint

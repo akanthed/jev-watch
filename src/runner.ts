@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
-import { JevClient } from "./client";
 import {
+  AnswerClient,
   AnswerResult,
   DriftDetail,
   QuestionResult,
@@ -100,7 +100,7 @@ function evaluateQuestion(
   return { questionId, passed: drifts.length === 0, drifts, actual };
 }
 
-export async function runTestCase(client: JevClient, test: TestCase): Promise<TestResult> {
+export async function runTestCase(client: AnswerClient, test: TestCase): Promise<TestResult> {
   try {
     const response = await client.ask({ state: test.state, questions: test.questions });
 
@@ -125,7 +125,7 @@ export async function runTestCase(client: JevClient, test: TestCase): Promise<Te
 }
 
 export async function runTestSuite(
-  client: JevClient,
+  client: AnswerClient,
   tests: { file: string; test: TestCase }[]
 ): Promise<TestResult[]> {
   const results: TestResult[] = [];

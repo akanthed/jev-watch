@@ -2,6 +2,8 @@ import * as fs from "fs";
 import * as path from "path";
 import * as dotenv from "dotenv";
 import { JevClient } from "./client";
+import { OpenRouterClient } from "./openrouterClient";
+import { AnswerClient } from "./types";
 import { loadTestCase, loadTestCasesFromDir, runTestSuite } from "./runner";
 import { printResults } from "./report";
 
@@ -14,10 +16,31 @@ function usage(): void {
 Usage:
   jev-watch <path-to-test.json | directory-of-tests>
 
-Environment:
-  JEV_API_URL   Base URL of the TypeSafe Jev API (required)
-  JEV_API_KEY   Bearer token for the API (required)
+Environment (either one of):
+  JEV_API_URL       Base URL of a direct TypeSafe Jev API deployment
+  JEV_API_KEY       Bearer token for that deployment
+
+  OPENROUTER_API_KEY  OpenRouter API key, to call Jev via OpenRouter instead
+  OPENROUTER_MODEL    Model slug (default: ~typesafe/jev-latest)
 `);
+}
+
+function buildClient(): AnswerClient | undefined {
+  const baseUrl = process.env.JEV_API_URL;
+  const apiKey = process.env.JEV_API_KEY;
+  if (baseUrl && apiKey) {
+    return new JevClient({ baseUrl, apiKey });
+  }
+
+  const openRouterKey = process.env.OPENROUTER_API_KEY;
+  if (openRouterKey) {
+    return new OpenRouterClient({
+      apiKey: openRouterKey,
+      model: process.env.OPENROUTER_MODEL,
+    });
+  }
+
+  return undefined;
 }
 
 export async function main(argv: string[]): Promise<number> {
@@ -28,11 +51,12 @@ export async function main(argv: string[]): Promise<number> {
     return target ? 0 : 1;
   }
 
-  const baseUrl = process.env.JEV_API_URL;
-  const apiKey = process.env.JEV_API_KEY;
-
-  if (!baseUrl || !apiKey) {
-    console.error("Missing JEV_API_URL or JEV_API_KEY in environment (.env.local).");
+  const client = buildClient();
+  if (!client) {
+    console.error(
+      "Missing credentials in environment (.env.local): set JEV_API_URL + JEV_API_KEY " +
+        "for a direct Jev API deployment, or OPENROUTER_API_KEY to call Jev via OpenRouter."
+    );
     return 1;
   }
 
@@ -51,7 +75,6 @@ export async function main(argv: string[]): Promise<number> {
     return 1;
   }
 
-  const client = new JevClient({ baseUrl, apiKey });
   const results = await runTestSuite(client, tests);
   printResults(results);
 

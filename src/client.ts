@@ -1,5 +1,5 @@
 import axios from "axios";
-import { JevApiResponse, Question, TestCase } from "./types";
+import { AnswerClient, JevApiResponse, Question, TestCase } from "./types";
 
 export interface JevClientConfig {
   baseUrl: string;
@@ -7,7 +7,7 @@ export interface JevClientConfig {
   timeoutMs?: number;
 }
 
-export class JevClient {
+export class JevClient implements AnswerClient {
   constructor(private readonly config: JevClientConfig) {}
 
   async ask(test: Pick<TestCase, "state" | "questions">): Promise<JevApiResponse> {

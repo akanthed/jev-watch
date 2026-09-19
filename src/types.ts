@@ -34,6 +34,10 @@ export interface JevApiResponse {
   answers: Record<string, AnswerResult>;
 }
 
+export interface AnswerClient {
+  ask(test: Pick<TestCase, "state" | "questions">): Promise<JevApiResponse>;
+}
+
 export type DriftKind = "choice" | "score" | "confidence";
 
 export interface DriftDetail {
